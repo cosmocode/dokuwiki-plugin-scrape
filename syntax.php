@@ -106,6 +106,8 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
     }
 
     private function display_html($data,$resp,&$R){
+        global $conf;
+
         // extract the wanted part from the HTML using the given query
         phpQuery::newDocument($resp);
         $pq = pq($data['query']);
@@ -122,6 +124,8 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
         $purifier->config->set('Attr.IDPrefix', 'scrape___');
         $purifier->config->set('URI.Base', $data['url']);
         $purifier->config->set('URI.MakeAbsolute', true);
+        io_mkdir_p($conf['cachedir'].'/_HTMLPurifier');
+        $purifier->config->set('Cache.SerializerPath',$conf['cachedir'].'/_HTMLPurifier');
         $html = $purifier->purify($html);
 
         $R->doc .= $html;
