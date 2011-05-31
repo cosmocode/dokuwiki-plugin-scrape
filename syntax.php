@@ -41,12 +41,10 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
         $match = substr($match, 9, -2);
         list($url, $title) = explode('|', $match, 2);
         list($url, $query) = explode(' ', $url, 2);
-        //FIXME handle refresh parameter
+        //FIXME handle refresh parameter?
         list($url, $hash)  = explode('#', $url, 2);
         if($hash)   $query = trim('#'.$hash.' '.$query);
         if(!$query) $query = 'body';
-
-        //FIXME support interwiki shortcuts
 
         $data = array(
             'url'   => $url,
@@ -59,6 +57,12 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
 
     public function render($mode, &$R, $data) {
         if($mode != 'xhtml') return false;
+
+        // support interwiki shortcuts
+        if(strpos($data['url'],'>') !== false){
+            list($iw,$ref) = explode('>',$data['url'],2);
+            $data['url'] = $R->_resolveInterWiki($iw,$ref);
+        }
 
         // fetch remote data
         $http = new DokuHTTPClient();
