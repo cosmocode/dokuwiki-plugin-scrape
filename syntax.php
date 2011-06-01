@@ -120,6 +120,33 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
         phpQuery::newDocument($resp);
         $pq = pq($data['query']);
 
+        // fix lists to match DokuWiki's style
+        $pq->find('li')->wrapInner('<div class="li" />');
+
+        // fix tables to match DokuWiki's style
+        $pq->find('table')->addClass('inline');
+
+        // fix links to match DokuWiki's style
+        foreach($pq->find('a') as $link){
+            $plink = pq($link);
+            list($ext,$mime) = mimetype($plink->attr('href'),true);
+            if($ext && $mime != 'text/html'){
+                // is it a known mediafile?
+                $plink->addClass('mediafile');
+                $plink->addClass('mf_'.$ext);
+                if($conf['target']['media']){
+                    $plink->attr('target',$conf['target']['media']);
+                }
+            }elseif($plink->attr('href')){
+                // treat it as external
+                if($conf['target']['extern']){
+                    $plink->attr('target',$conf['target']['extern']);
+                }
+                $plink->addClass('urlextern');
+            }
+            $plink->removeAttr('style');
+        }
+
         // get all wanted HTML by converting the DOMElements back to HTML
         $html = '';
         foreach($pq->elements as $elem){
@@ -132,6 +159,7 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
         $purifier->config->set('Attr.IDPrefix', 'scrape___');
         $purifier->config->set('URI.Base', $data['url']);
         $purifier->config->set('URI.MakeAbsolute', true);
+        $purifier->config->set('Attr.AllowedFrameTargets',array('_blank','_self','_parent','_top'));
         io_mkdir_p($conf['cachedir'].'/_HTMLPurifier');
         $purifier->config->set('Cache.SerializerPath',$conf['cachedir'].'/_HTMLPurifier');
         $html = $purifier->purify($html);
