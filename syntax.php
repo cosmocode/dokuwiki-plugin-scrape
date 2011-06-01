@@ -64,6 +64,14 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
             $data['url'] = $R->_resolveInterWiki($iw,$ref);
         }
 
+        // check if URL is allowed
+        $re = $this->getConf('allowedre');
+        if(!$re || !preg_match('/'.$re.'/i',$data['url'])){
+            $R->doc .= 'This URL is not allowed for scraping';
+            return true;
+        }
+
+
         // fetch remote data
         $http = new DokuHTTPClient();
         $resp = $http->get($data['url']);
