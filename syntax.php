@@ -44,7 +44,7 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
         //FIXME handle refresh parameter?
         list($url, $hash)  = explode('#', $url, 2);
         if($hash)   $query = trim('#'.$hash.' '.$query);
-        if(!$query) $query = 'body';
+        if(!$query) $query = 'body > *';
 
         $data = array(
             'url'   => $url,
