@@ -44,12 +44,19 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
         //FIXME handle refresh parameter?
         list($url, $hash)  = explode('#', $url, 2);
         if($hash)   $query = trim('#'.$hash.' '.$query);
-        if(!$query) $query = 'body > *';
+        if(!$query) $query = 'body ~';
+
+        $inner = false;
+        if(substr($query,-1) == '~'){
+            $query = rtrim($query,'~ ');
+            $inner = true;
+        }
 
         $data = array(
             'url'   => $url,
             'title' => $title,
             'query' => $query,
+            'inner' => $inner,
         );
 
         return $data;
@@ -149,8 +156,12 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
 
         // get all wanted HTML by converting the DOMElements back to HTML
         $html = '';
-        foreach($pq->elements as $elem){
-            $html .= $elem->ownerDocument->saveXML($elem);
+        if($data['inner']){
+            $html .= $pq->html();
+        }else{
+            foreach($pq->elements as $elem){
+                $html .= $elem->ownerDocument->saveXML($elem);
+            }
         }
 
         // clean up HTML
