@@ -2,9 +2,6 @@ scrape Plugin for DokuWiki
 
 Include HTML parts from other website into the wiki
 
-All documentation for this plugin can be found at
-http://www.dokuwiki.org/plugin:scrape
-
 If you install this plugin manually, make sure it is installed in
 lib/plugins/scrape/ - if the folder is called different it
 will not work!
