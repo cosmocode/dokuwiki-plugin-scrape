@@ -1,7 +1,7 @@
 base   scrape
 author Andreas Gohr
-email  gohr@cosmocode.de
-date   2011-06-28
+email  dokuwiki@cosmocode.de
+date   2015-02-26
 name   scrape plugin
 desc   Include HTML parts from other website into the wiki
 url    http://www.dokuwiki.org/plugin:scrape
