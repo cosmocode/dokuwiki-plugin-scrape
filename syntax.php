@@ -37,7 +37,7 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
     }
 
 
-    public function handle($match, $state, $pos, &$handler){
+    public function handle($match, $state, $pos, Doku_Handler $handler){
         $match = substr($match, 9, -2);
         list($url, $title) = explode('|', $match, 2);
         list($url, $query) = explode(' ', $url, 2);
@@ -62,7 +62,7 @@ class syntax_plugin_scrape extends DokuWiki_Syntax_Plugin {
         return $data;
     }
 
-    public function render($mode, &$R, $data) {
+    public function render($mode, Doku_Renderer $R, $data) {
         if($mode != 'xhtml') return false;
 
         // support interwiki shortcuts
