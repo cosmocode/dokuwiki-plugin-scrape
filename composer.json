@@ -1,0 +1,6 @@
+{
+    "require": {
+        "scotteh/php-dom-wrapper": "^2.0",
+        "ezyang/htmlpurifier": "^4.16"
+    }
+}
