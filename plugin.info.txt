@@ -5,3 +5,4 @@ date   2016-07-06
 name   scrape plugin
 desc   Include HTML parts from other website into the wiki
 url    http://www.dokuwiki.org/plugin:scrape
+minphp 7.4

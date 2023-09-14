@@ -1,0 +1,11 @@
+{
+    "require": {
+        "scotteh/php-dom-wrapper": "^2.0",
+        "ezyang/htmlpurifier": "^4.16"
+    },
+    "config": {
+        "platform": {
+            "php": "7.4"
+        }
+    }
+}
