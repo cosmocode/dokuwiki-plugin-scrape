@@ -133,6 +133,7 @@ class syntax_plugin_scrape extends SyntaxPlugin
         // extract the wanted part from the HTML using the given query
         $doc = new Document();
         $doc->html($resp);
+
         $pq = $doc->find($data['query']);
 
         // fix lists to match DokuWiki's style
