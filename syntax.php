@@ -2,6 +2,7 @@
 
 use dokuwiki\Extension\SyntaxPlugin;
 use dokuwiki\HTTP\DokuHTTPClient;
+use DOMWrap\Document;
 
 /**
  * DokuWiki Plugin scrape (Syntax Component)
@@ -11,6 +12,11 @@ use dokuwiki\HTTP\DokuHTTPClient;
  */
 class syntax_plugin_scrape extends SyntaxPlugin
 {
+    public function __construct()
+    {
+        require_once __DIR__ . '/vendor/autoload.php';
+    }
+
     /** @inheritdoc */
     public function getType()
     {
@@ -39,11 +45,11 @@ class syntax_plugin_scrape extends SyntaxPlugin
     public function handle($match, $state, $pos, Doku_Handler $handler)
     {
         $match = substr($match, 9, -2);
-        [$url, $title] = explode('|', $match, 2);
-        [$url, $query] = explode(' ', $url, 2);
+        [$url, $title] = sexplode('|', $match, 2);
+        [$url, $query] = sexplode(' ', $url, 2);
         //FIXME handle refresh parameter?
-        [$url, $hash]  = explode('#', $url, 2);
-        if ($hash)   $query = trim('#' . $hash . ' ' . $query);
+        [$url, $hash] = sexplode('#', $url, 2);
+        if ($hash) $query = trim('#' . $hash . ' ' . $query);
         if (!$query) $query = 'body ~';
 
         $inner = false;
@@ -52,7 +58,12 @@ class syntax_plugin_scrape extends SyntaxPlugin
             $inner = true;
         }
 
-        $data = ['url'   => $url, 'title' => $title, 'query' => $query, 'inner' => $inner];
+        $data = [
+            'url' => $url,
+            'title' => $title,
+            'query' => $query,
+            'inner' => $inner
+        ];
 
         return $data;
     }
@@ -75,7 +86,6 @@ class syntax_plugin_scrape extends SyntaxPlugin
             return true;
         }
 
-
         // fetch remote data
         $http = new DokuHTTPClient();
         $resp = $http->get($data['url']);
@@ -86,11 +96,10 @@ class syntax_plugin_scrape extends SyntaxPlugin
         }
 
         // determine mime type
-        [$mime, $charset] = explode(';', $http->resp_headers['content-type']);
-        $mime    = trim(strtolower($mime));
+        [$mime, $charset] = sexplode(';', $http->resp_headers['content-type'], 2);
+        $mime = trim(strtolower($mime));
         $charset = trim(strtolower($charset));
         $charset = preg_replace('/charset *= */', '', $charset);
-
 
         if (preg_match('/image\/(gif|png|jpe?g)/', $mime)) {
             // image embed
@@ -102,7 +111,7 @@ class syntax_plugin_scrape extends SyntaxPlugin
 
             if (preg_match('/text\/html/', $mime)) {
                 // display HTML
-                $this->displayHTML($data, $resp, $R);
+                $R->doc .= $this->cleanHTML($data, $resp);
 
                 //FIXME support directory listings?
             } else {
@@ -117,62 +126,62 @@ class syntax_plugin_scrape extends SyntaxPlugin
         return true;
     }
 
-    private function displayHTML($data, $resp, &$R)
+    private function cleanHTML($data, $resp)
     {
         global $conf;
 
         // extract the wanted part from the HTML using the given query
-        phpQuery::newDocument($resp);
-        $pq = pq($data['query']);
+        $doc = new Document();
+        $doc->html($resp);
+        $pq = $doc->find($data['query']);
 
         // fix lists to match DokuWiki's style
         $pq->find('li')->wrapInner('<div class="li" />');
 
         // fix tables to match DokuWiki's style
-        $pq->find('table')->addClass('inline');
+        $pq->find('table')->addClass('inline')->wrap('<div class="table" />');
 
         // fix links to match DokuWiki's style
         foreach ($pq->find('a') as $link) {
-            $plink = pq($link);
-            [$ext, $mime] = mimetype($plink->attr('href'), true);
+            [$ext, $mime] = mimetype($link->attr('href'), true);
             if ($ext && $mime != 'text/html') {
                 // is it a known mediafile?
-                $plink->addClass('mediafile');
-                $plink->addClass('mf_' . $ext);
+                $link->addClass('mediafile');
+                $link->addClass('mf_' . $ext);
                 if ($conf['target']['media']) {
-                    $plink->attr('target', $conf['target']['media']);
+                    $link->attr('target', $conf['target']['media']);
                 }
-            } elseif ($plink->attr('href')) {
+            } elseif ($link->attr('href')) {
                 // treat it as external
                 if ($conf['target']['extern']) {
-                    $plink->attr('target', $conf['target']['extern']);
+                    $link->attr('target', $conf['target']['extern']);
                 }
-                $plink->addClass('urlextern');
+                $link->addClass('urlextern');
             }
-            $plink->removeAttr('style');
+            $link->removeAttr('style');
         }
 
-        // get all wanted HTML by converting the DOMElements back to HTML
         $html = '';
         if ($data['inner']) {
             $html .= $pq->html();
         } else {
-            foreach ($pq->elements as $elem) {
-                $html .= $elem->ownerDocument->saveXML($elem);
-            }
+            $pq->each(function ($node) use (&$html) {
+                $html .= $node->ownerDocument->saveXML($node) . "\n";
+            });
         }
 
         // clean up HTML
-        $purifier = new HTMLPurifier();
-        $purifier->config->set('Attr.EnableID', true);
-        $purifier->config->set('Attr.IDPrefix', 'scrape___');
-        $purifier->config->set('URI.Base', $data['url']);
-        $purifier->config->set('URI.MakeAbsolute', true);
-        $purifier->config->set('Attr.AllowedFrameTargets', ['_blank', '_self', '_parent', '_top']);
+        $config = HTMLPurifier_Config::createDefault();
+        $config->set('Attr.EnableID', true);
+        $config->set('Attr.IDPrefix', 'scrape___');
+        $config->set('URI.Base', $data['url']);
+        $config->set('URI.MakeAbsolute', true);
+        $config->set('Attr.AllowedFrameTargets', ['_blank', '_self', '_parent', '_top']);
         io_mkdir_p($conf['cachedir'] . '/_HTMLPurifier');
-        $purifier->config->set('Cache.SerializerPath', $conf['cachedir'] . '/_HTMLPurifier');
+        $config->set('Cache.SerializerPath', $conf['cachedir'] . '/_HTMLPurifier');
+        $purifier = new HTMLPurifier($config);
         $html = $purifier->purify($html);
 
-        $R->doc .= $html;
+        return trim($html);
     }
 }
